@@ -24,10 +24,8 @@
 #define ALEPH_BLOCK_DEV_H
 
 #define ALEPH_BDEV_MEMBERS_OFFSET (0x800)
-#define ALEPH_BDEV_BUFFER_OFFSET (0x1000)
-#define ALEPH_BDEV_BUFFER_SIZE (0x1000)
 //just in case. IOBlockStorageDevice is of size 0x90
-#define ALEPH_BDEV_SIZE (0x2000)
+#define ALEPH_BDEV_SIZE (0x1000)
 
 #define BLOCK_SIZE (0x1000)
 
@@ -36,6 +34,7 @@
 #define VENDOR_NAME_SIZE (64)
 
 typedef struct {
+    uint64_t qcall_vaddr;
     void *mtx_grp;
     void *lck_mtx;
     uint64_t size;
@@ -47,7 +46,6 @@ typedef struct {
 } AlephBDevMembers;
 
 AlephBDevMembers *get_bdev_members(void *bdev);
-void *get_bdev_buffer(void *bdev);
 void *get_bdev_mclass_inst(void);
 
 //our driver virtual functions
@@ -71,14 +69,16 @@ typedef void (*FuncCompletionAction)(uint64_t p1, uint64_t p2,
 
 //IOStorageBlockDevice virtual function indices
 
-#define IOSTORAGEBDEV_GETVENDORSTRING_INDEX (171)
-#define IOSTORAGEBDEV_GETPRODUCTSTRING_INDEX (172)
-#define IOSTORAGEBDEV_REPORTBSIZE_INDEX (175)
-#define IOSTORAGEBDEV_REPORTMAXVALIDBLOCK_INDEX (177)
-#define IOSTORAGEBDEV_REPORTMEDIASTATE_INDEX (178)
-#define IOSTORAGEBDEV_REPORTREMOVABILITY_INDEX (179)
-#define IOSTORAGEBDEV_SOMEFUNC3_INDEX (180)
-#define IOSTORAGEBDEV_DOASYNCREADWRITE_INDEX (183)
+//TODO: JONATHANA make better framework here to support multiple versions
+//TODO: JONATHANA iOS 12 with -1 from here
+#define IOSTORAGEBDEV_GETVENDORSTRING_INDEX (172)
+#define IOSTORAGEBDEV_GETPRODUCTSTRING_INDEX (173)
+#define IOSTORAGEBDEV_REPORTBSIZE_INDEX (176)
+#define IOSTORAGEBDEV_REPORTMAXVALIDBLOCK_INDEX (178)
+#define IOSTORAGEBDEV_REPORTMEDIASTATE_INDEX (179)
+#define IOSTORAGEBDEV_REPORTREMOVABILITY_INDEX (180)
+#define IOSTORAGEBDEV_SOMEFUNC3_INDEX (181)
+#define IOSTORAGEBDEV_DOASYNCREADWRITE_INDEX (184)
 
 void create_new_aleph_bdev(const char *prod_name, const char *vendor_name,
                            const char *mutex_name, uint64_t bdev_file_index,

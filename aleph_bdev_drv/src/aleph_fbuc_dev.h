@@ -42,7 +42,10 @@ typedef struct {
 } NotifPortInfo;
 
 typedef struct {
+    void *surface_root;
     void *task;
+    uint8_t *fb;
+    uint64_t qcall_vaddr;
     NotifPortInfo notif_ports[FBUC_MAX_NOTIF_PORTS];
     IOExternalMethodDispatch fbuc_external_methods[FBUC_MAX_EXT_FUNCS];
 

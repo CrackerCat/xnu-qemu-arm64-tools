@@ -37,9 +37,10 @@ static MetaClassVTable fb_meta_class_vtable;
 void create_fb_vtable(void)
 {
     memcpy(&fb_vtable[0],
-           (void *)IOSERVICE_VTABLE_PTR,
+           (char *)&IOService_vtable + 0x10,
            sizeof(fb_vtable));
-    fb_vtable[IOSERVICE_GETMCLASS_INDEX] = &AlephFramebufferDevice_getMetaClass;
+    fb_vtable[IOSERVICE_GETMCLASS_INDEX] =
+            &AlephFramebufferDevice_getMetaClass;
 }
 
 void *fb_alloc(void)
@@ -53,9 +54,9 @@ void *fb_alloc(void)
 
 void create_fb_metaclass_vtable(void)
 {
-    memcpy(&fb_meta_class_vtable, (void *)IOSERVICE_MCLASS_VTABLE_PTR,
+    memcpy(&fb_meta_class_vtable, (char *)&IOService_MetaClass_vtable + 0x10,
            sizeof(MetaClassVTable));
-    fb_meta_class_vtable.alloc = fb_alloc;
+    fb_meta_class_vtable.alloc = &fb_alloc;
 }
 
 void register_fb_meta_class()
@@ -66,18 +67,16 @@ void register_fb_meta_class()
     create_fb_metaclass_vtable();
 
     void **mc = OSMetaClass_OSMetaClass(get_fb_mclass_inst(),
-                                  FBDEV_CLASS_NAME,
-                                  (void *)IOSERVICE_MCLASS_INST_PTR,
-                                  ALEPH_FBDEV_SIZE);
+                                        FBDEV_CLASS_NAME,
+                                        (void *)&IOService_gMetaClass,
+                                        ALEPH_FBDEV_SIZE);
     if (NULL == mc) {
+        IOLog("register_fb_meta_class(): got NULL mc\n");
         cancel();
     }
     mc[0] = &fb_meta_class_vtable;
-
     mclass_reg_alock_lock();
-
     add_to_classes_dict(FBDEV_CLASS_NAME, mc);
-
     mclass_reg_alock_unlock();
     mclass_reg_slock_unlock();
 }

@@ -14,6 +14,10 @@ def nm2ld(in_file, out_file):
         if name.startswith('_'):
             name = name[1:]
 
+        name = name.replace("<", "__")
+
+        name = name.replace(">", "__")
+
         print(f"PROVIDE ({name} = 0x{location});", file=writer)
 
 def main():

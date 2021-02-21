@@ -32,8 +32,9 @@
 
 void add_to_classes_dict(char *name, void **mc)
 {
-    uint32_t *dict = *(uint32_t **)SALLCLASSESDICT_PTR;
+    uint32_t *dict = (uint32_t *)sAllClassesDict;
     if (NULL == dict) {
+        IOLog("add_to_classes_dict(): dict is 0\n");
         cancel();
     }
 
@@ -50,27 +51,28 @@ void add_to_classes_dict(char *name, void **mc)
 
 void mclass_reg_alock_lock()
 {
-    if (NULL == *(void **)SALLCLASSESLOCK_PTR) {
+    if (NULL == (void *)sAllClassesLock) {
+        IOLog("mclass_reg_alock_lock(): sAllClassesLock is 0\n");
         cancel();
     }
-    lck_mtx_lock(*(void **)SALLCLASSESLOCK_PTR);
+    lck_mtx_lock((void *)sAllClassesLock);
 }
 
 void mclass_reg_alock_unlock()
 {
-    lck_mtx_unlock(*(void **)SALLCLASSESLOCK_PTR);
+    lck_mtx_unlock((void *)sAllClassesLock);
 }
 
 void mclass_reg_slock_lock()
 {
-    if (NULL == *(void **)SSTALLEDCLASSESLOCK_PTR) {
+    if (NULL == (void *)sStalledClassesLock) {
+        IOLog("mclass_reg_slock_lock(): sStalledClassesLock is 0\n");
         cancel();
     }
-    lck_mtx_lock(*(void **)SSTALLEDCLASSESLOCK_PTR);
+    lck_mtx_lock((void *)sStalledClassesLock);
 }
 
 void mclass_reg_slock_unlock()
 {
-    lck_mtx_unlock(*(void **)SSTALLEDCLASSESLOCK_PTR);
+    lck_mtx_unlock((void *)sStalledClassesLock);
 }
-

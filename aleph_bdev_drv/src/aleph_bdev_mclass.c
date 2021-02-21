@@ -38,7 +38,7 @@ static MetaClassVTable bdev_meta_class_vtable;
 void create_bdev_vtable(void)
 {
     memcpy(&bdev_vtable[0],
-           (void *)IOBLOCKSTORAGEDEVICE_VTABLE_PTR,
+           (char *)&IOBlockStorageDevice_vtable + 0x10,
            sizeof(bdev_vtable));
     bdev_vtable[IOSERVICE_GETMCLASS_INDEX] =
                                         &AlephBlockDevice_getMetaClass;
@@ -62,12 +62,8 @@ void create_bdev_vtable(void)
 
 void *bdev_alloc(void)
 {
-    ObjConstructor ioblockstoragedevice_constructor;
-    ioblockstoragedevice_constructor =
-                (ObjConstructor)IOBLOCKSTORAGEDEVICE_CONSTRUCTOR_FUNC_PTR;
-
     void **obj = OSObject_new(ALEPH_BDEV_SIZE);
-    ioblockstoragedevice_constructor(obj);
+    IOBlockStorageDevice_IOBlockStorageDevice(obj, get_bdev_mclass_inst());
     obj[0] = &bdev_vtable[0];
     OSMetaClass_instanceConstructed(get_bdev_mclass_inst());
     return obj;
@@ -76,7 +72,7 @@ void *bdev_alloc(void)
 void create_bdev_metaclass_vtable(void)
 {
     memcpy(&bdev_meta_class_vtable,
-           (void *)IOBLOCKSTORAGEDEVICE_MCLASS_VTABLE_PTR,
+           (char *)&IOBlockStorageDevice_MetaClass_vtable + 0x10,
            sizeof(MetaClassVTable));
     bdev_meta_class_vtable.alloc = bdev_alloc;
 }
@@ -84,24 +80,19 @@ void create_bdev_metaclass_vtable(void)
 void register_bdev_meta_class()
 {
     mclass_reg_slock_lock();
-
     create_bdev_vtable();
     create_bdev_metaclass_vtable();
-
     void **mc = OSMetaClass_OSMetaClass(get_bdev_mclass_inst(),
                                   BDEV_CLASS_NAME,
-                                  (void *)IOBLOCKSTORAGEDEVICE_MCLASS_INST_PTR,
+                                  (void *)&IOBlockStorageDevice_gMetaClass,
                                   ALEPH_BDEV_SIZE);
     if (NULL == mc) {
+        IOLog("register_bdev_meta_class(): mc is 0\n");
         cancel();
     }
     mc[0] = &bdev_meta_class_vtable;
-
     mclass_reg_alock_lock();
-
     add_to_classes_dict(BDEV_CLASS_NAME, mc);
-
     mclass_reg_alock_unlock();
     mclass_reg_slock_unlock();
-
 }

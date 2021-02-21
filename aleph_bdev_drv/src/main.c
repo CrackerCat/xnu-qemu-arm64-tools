@@ -20,6 +20,9 @@
  * THE SOFTWARE.
  */
 
+//TODO: JONATHANA change the name of the directory and the README
+//to something general and not bdev specific
+
 #include <string.h>
 #include <stdint.h>
 
@@ -33,6 +36,7 @@
 #include "aleph_fbuc_mclass.h"
 
 #include "hw/arm/guest-services/general.h"
+#include "hw/arm/guest-services/xnu_general.h"
 
 #define NUM_BLOCK_DEVS_MAX (10)
 
@@ -42,40 +46,48 @@
 
 void _start() __attribute__((section(".start")));
 
-static uint8_t executed = 0;
 
+//make sure to hook to this entry of the driver from a place that is called
+//only once whe the system boots
 void _start() {
-    uint64_t i = 0;
-    //in case the hook gets called more than once we want to make sure
-    //it starts only once
-    if (executed) {
-        return;
+
+
+    //get address of memory thaat we will use for framebuffer, other hooks,
+    //etc.. from he host
+    qemu_call_t *qcall = (qemu_call_t *)qemu_call_status();
+    if (0 == qcall) {
+        IOLog("_start: got 0 qcall\n");
+        cancel();
     }
-    executed = 1;
+    qcall->call_number = QC_VALUE_CB;
+    qcall->args.general.id = XNU_GET_MORE_ALLOCATED_DATA;
+    qemu_call(qcall);
+
+    uint64_t more_edata_vaddr = qcall->args.general.data1;
+    uint64_t more_edata_size = qcall->args.general.data2;
+    if ((0 == more_edata_vaddr) || (0 == more_edata_size)) {
+        IOLog("_start: got 0 more_edata_vaddr or more_edata_size\n");
+        cancel();
+    }
+
+    //Map the beginning of the physical memory to static virtual memory as
+    //RWX so we can have the framebuffer, other hooks and more in there..
+    arm_vm_page_granular_prot(more_edata_vaddr, more_edata_size,
+                              0, 0, 0, 0, 1);
 
     if (NUM_BLOCK_DEVS > NUM_BLOCK_DEVS_MAX) {
+        IOLog("_start: error: NUM_BLOCK_DEVS > NUM_BLOCK_DEVS_MAX\n");
         cancel();
     }
 
     register_bdev_meta_class();
-    register_fb_meta_class();
-    register_fbuc_meta_class();
 
     //TODO: release this object ref
     void *match_dict = IOService_serviceMatching("AppleARMPE", NULL);
     //TODO: release this object ref
     void *service = waitForMatchingService(match_dict, -1);
-    //TODO: release this object ref
     if (0 == service) {
-        cancel();
-    }
-
-    //TODO: release this object ref
-    void *match_dict_disp = IOService_nameMatching("disp0", NULL);
-    //TODO: release this object ref
-    void *service_disp = waitForMatchingService(match_dict_disp, -1);
-
-    if (0 == service_disp) {
+        IOLog("_start: can't find \"AppleARMPE\" service\n");
         cancel();
     }
 
@@ -83,11 +95,11 @@ void _start() {
     char bdev_vendor_name[] = "0Aleph";
     char bdev_mutex_name[] = "0AM";
 
-    for (i = 0; i < NUM_BLOCK_DEVS; i++) {
-        //TODO: release this object ref?
+    for (uint64_t i = 0; i < NUM_BLOCK_DEVS; i++) {
         bdev_prod_name[0]++;
         bdev_vendor_name[0]++;
         bdev_mutex_name[0]++;
+        //TODO: release this object ref?
         create_new_aleph_bdev(bdev_prod_name, bdev_vendor_name,
                               bdev_mutex_name, i, service);
 
@@ -99,6 +111,19 @@ void _start() {
         //    void *match_dict_first = IOService_serviceMatching("IOMediaBSDClient", NULL);
         //    void *service_first = waitForMatchingService(match_dict_first, -1);
         //}
+    }
+
+    register_fb_meta_class();
+    register_fbuc_meta_class();
+
+    //TODO: release this object ref
+    //void *match_dict_disp = IOService_nameMatching("disp0", NULL);
+    void *match_dict_disp = IOService_nameMatching("AppleARMPE", NULL);
+    //TODO: release this object ref
+    void *service_disp = waitForMatchingService(match_dict_disp, -1);
+    if (0 == service_disp) {
+        IOLog("_start: can't find \"AppleARMPE\" service\n");
+        cancel();
     }
 
     create_new_aleph_fbdev(service_disp);

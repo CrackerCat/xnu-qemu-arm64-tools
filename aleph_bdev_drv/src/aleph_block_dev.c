@@ -40,11 +40,6 @@ AlephBDevMembers *get_bdev_members(void *bdev)
     return members;
 }
 
-void *get_bdev_buffer(void *bdev)
-{
-    return (void *)&(((uint8_t *)bdev)[ALEPH_BDEV_BUFFER_OFFSET]);
-}
-
 void *get_bdev_mclass_inst(void)
 {
     return (void *)&aleph_bdev_meta_class_inst[0];
@@ -109,59 +104,73 @@ uint64_t AlephBlockDevice_doAsyncReadWrite(void *this, void **buffer,
                                          void *attrs, void **completion)
 {
     uint64_t i = 0;
-    void *dev_buf = get_bdev_buffer(this);
     AlephBDevMembers *members = get_bdev_members(this);
 
+    //TODO: JONATHANA this lock currently protects the global qcall obj
+    //consider having one per cpuu if we want to support performance with
+    //multiple CPUs
     lck_mtx_lock(members->lck_mtx);
 
     void **buffer_vtable = buffer[0];
-    FuncIOMemDescGetDirection get_dir_f =
-        (FuncIOMemDescGetDirection)buffer_vtable[IOMEMDESCGETDIRECTION_INDEX];
-    FuncIOMemDescReadBytes read_bytes_f =
-        (FuncIOMemDescReadBytes)buffer_vtable[IOMEMDESCREADBYTES_INDEX];
-    FuncIOMemDescWriteBytes write_bytes_f =
-        (FuncIOMemDescWriteBytes)buffer_vtable[IOMEMDESCWRITEBYTES_INDEX];
 
-    uint64_t direction = get_dir_f(buffer);
+    uint64_t direction = IOMemoryDescriptor_getDirection(buffer);
 
     uint64_t byte_count = 0;
     uint64_t offset = 0;
     uint64_t length = 0;
 
-    if (kIODirectionIn == direction) {
-        for (i = 0; i < nblks; i++) {
-            offset = BLOCK_SIZE * (i + block);
-            length = BLOCK_SIZE;
-            if ((offset + length) > members->size) {
-                length = members->size - offset;
-            }
-            if ((offset + length) >= members->size + BLOCK_SIZE) {
+    void *map = IOMemoryDescriptor_map(buffer, 0);
+    for (i = 0; i < nblks; i++) {
+        offset = BLOCK_SIZE * (i + block);
+        length = BLOCK_SIZE;
+        if ((offset + length) > members->size) {
+            length = members->size - offset;
+        }
+        if ((offset + length) >= members->size + BLOCK_SIZE) {
+            IOLog("AlephBlockDevice_doAsyncReadWrite: read/write over size\n");
+            cancel();
+        }
+
+        uint32_t cur_offset = i * BLOCK_SIZE;
+        uint32_t seg_len = 0;
+        uint32_t len_done = 0;
+        uint64_t paddr = 0;
+        while (len_done < length) {
+            paddr = IOMemoryMap_getPhysicalSegment(map, cur_offset,
+                                                   &seg_len, 0);
+            if ((0 == paddr) || (0 == seg_len)) {
+                IOLog("AlephBlockDevice_doAsyncReadWrite: paddr or len 0\n");
                 cancel();
             }
-
-            qc_read_file(dev_buf, length, offset, members->qc_file_index);
-            byte_count += write_bytes_f(buffer, (i * BLOCK_SIZE),
-                                        dev_buf, length);
-        }
-    } else if (kIODirectionOut == direction) {
-        for (i = 0; i < nblks; i++) {
-            offset = BLOCK_SIZE * (i + block);
-            length = BLOCK_SIZE;
-            if ((offset + length) > members->size) {
-                length = members->size - offset;
+            if (seg_len > length) {
+                seg_len = length;
             }
-            if ((offset + length) >= members->size + BLOCK_SIZE) {
+            if (kIODirectionIn == direction) {
+                qc_read_file(paddr, seg_len, offset, members->qc_file_index,
+                             (void *)members->qcall_vaddr);
+            } else if (kIODirectionOut == direction) {
+                qc_write_file(paddr, seg_len, offset, members->qc_file_index,
+                              (void *)members->qcall_vaddr);
+            } else {
+                IOLog("AlephBlockDevice_doAsyncReadWrite: unknown dir\n");
                 cancel();
             }
-
-            byte_count += read_bytes_f(buffer, (i * BLOCK_SIZE),
-                                       dev_buf, length);
-            qc_write_file(dev_buf, length, offset, members->qc_file_index);
+            len_done += seg_len;
+            cur_offset += seg_len;
+            offset += seg_len;
         }
-    } else {
-        cancel();
+        byte_count += length;
     }
+    OSObject_release(map);
 
+    //TODO: JONATHANA this is very ineffective. We have to change he mechanism
+    //so that on the host side things will be implemented with a mmap()
+    //instead of read()/write(). More important though is that in case
+    //mmap access page faults on the host, we have to let the guest conext
+    //switch and keep running. We have to perform the action on the host from
+    //here on a new host thread or async in another way and let the guest keep
+    //running. Once the host is done it will deliver an IRQ to the guest
+    //and we will execute the completion routine from this driver.
     if (NULL != completion) {
         FuncCompletionAction comp_act_f = (FuncCompletionAction)completion[1];
         comp_act_f((uint64_t)completion[0], (uint64_t)completion[2], 0,
@@ -179,13 +188,14 @@ void create_new_aleph_bdev(const char *prod_name, const char *vendor_name,
     //TODO: release this object ref?
     void *bdev = OSMetaClass_allocClassWithName(BDEV_CLASS_NAME);
     if (NULL == bdev) {
+        IOLog("create_new_aleph_bdev(): NULL bdev\n");
         cancel();
     }
-    void **vtable_ptr = (void **)*(uint64_t *)bdev;
 
-    FuncIOServiceInit vfunc_init =
-                (FuncIOServiceInit)vtable_ptr[IOSERVICE_INIT_INDEX];
-    vfunc_init(bdev, NULL);
+    if (!IOBlockStorageDevice_init(bdev, NULL)) {
+        IOLog("create_new_aleph_bdev(): ::init() failed\n");
+        cancel();
+    }
 
     AlephBDevMembers *members = get_bdev_members(bdev);
     members->qc_file_index = bdev_file_index;
@@ -196,18 +206,33 @@ void create_new_aleph_bdev(const char *prod_name, const char *vendor_name,
     members->mutex_name[0] += bdev_file_index;
     members->mtx_grp = lck_grp_alloc_init(&members->mutex_name[0], NULL);
     members->lck_mtx = lck_mtx_alloc_init(members->mtx_grp, NULL);
-    members->size = qc_size_file(bdev_file_index);
-    members->block_count = (members->size + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-    if (NULL == parent_service) {
+    members->qcall_vaddr = qemu_call_status();
+    if (0 == members->qcall_vaddr) {
+        IOLog("create_new_aleph_bdev(): members->qcall_vaddr is 0\n");
+        cancel();
+    }
+    members->size = qc_size_file(bdev_file_index,
+                                 (void *)members->qcall_vaddr);
+    if (0 == members->size) {
+        IOLog("create_new_aleph_bdev(): members->size is 0\n");
         cancel();
     }
 
-    FuncIOServiceAttach vfunc_attach =
-                (FuncIOServiceAttach)vtable_ptr[IOSERVICE_ATTACH_INDEX];
-    vfunc_attach(bdev, parent_service);
+    members->block_count = (members->size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    if (0 == members->block_count) {
+        IOLog("create_new_aleph_bdev(): members->block_count is 0\n");
+        cancel();
+    }
 
-    FuncIOSerivceRegisterService vfunc_reg_service =
-        (FuncIOSerivceRegisterService)vtable_ptr[IOSERVICE_REG_SERVICE_INDEX];
-    vfunc_reg_service(bdev, 0);
+    if (NULL == parent_service) {
+        IOLog("create_new_aleph_bdev(): NULL parent_service\n");
+        cancel();
+    }
+
+    if (!IOService_attach(bdev, parent_service)) {
+        IOLog("create_new_aleph_bdev(): ::attach() failed\n");
+        cancel();
+    }
+
+    IOService_registerService(bdev, 0);
 }

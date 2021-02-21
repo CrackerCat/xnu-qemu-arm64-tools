@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2020 Jonathan Afek <jonyafek@me.com>
+ *
+ * Copyright (c) 2021 Jonathan Afek <jonyafek@me.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,12 +21,24 @@
  * THE SOFTWARE.
  */
 
-#ifndef UTILS_H
-#define UTILS_H
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <libproc.h>
+#include <execinfo.h>
+#include <time.h>
+#include <pthread.h>
+#include "colors.h"
+#include <dlfcn.h>
 
-void cancel();
+int main(int argc, char **argv)
+{
+    fprintf(stderr, "before sleep: 0x%016llx\n", (uint64_t)&sleep);
+    //TODO: JONATHANA
+    //asm volatile ("hlt #0");
+    sleep(1);
+    fprintf(stderr, "after sleep\n");
+    return 0;
+}
 
-char *my_itoa(uint64_t num, char *str);
-void log_uint64(const char *name, uint64_t num);
-
-#endif

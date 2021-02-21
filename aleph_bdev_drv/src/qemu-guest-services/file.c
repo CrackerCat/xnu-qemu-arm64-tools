@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  */
 
+//TODO: JONATHANA move files in this directory to a general dir in the repo
+
 #include "hw/arm/guest-services/general.h"
 
 static int64_t qemu_file_call(qemu_call_t *qcall)
@@ -31,40 +33,38 @@ static int64_t qemu_file_call(qemu_call_t *qcall)
     guest_svcs_errno = qcall->error;
     return qcall->retval;
 }
-int64_t qc_size_file(uint64_t index)
-{
-    qemu_call_t qcall = {
-        .call_number = QC_SIZE_FILE,
-        .args.size_file.index = index,
-    };
 
-    return qemu_file_call(&qcall);
+int64_t qc_size_file(uint64_t index, void *qcall)
+{
+    qemu_call_t *pqcall = (qemu_call_t *)qcall;
+    pqcall->call_number = QC_SIZE_FILE;
+    pqcall->args.size_file.index = index;
+
+    return qemu_file_call(pqcall);
 }
 
-int64_t qc_write_file(void *buffer_guest_ptr, uint64_t length,
-                      uint64_t offset, uint64_t index)
+int64_t qc_write_file(uint64_t buffer_guest_paddr, uint64_t length,
+                      uint64_t offset, uint64_t index, void *qcall)
 {
-    qemu_call_t qcall = {
-        .call_number = QC_WRITE_FILE,
-        .args.write_file.buffer_guest_ptr = (uint64_t)buffer_guest_ptr,
-        .args.write_file.length = length,
-        .args.write_file.offset = offset,
-        .args.write_file.index = index,
-    };
+    qemu_call_t *pqcall = (qemu_call_t *)qcall;
+    pqcall->call_number = QC_WRITE_FILE;
+    pqcall->args.write_file.buffer_guest_paddr = buffer_guest_paddr;
+    pqcall->args.write_file.length = length;
+    pqcall->args.write_file.offset = offset;
+    pqcall->args.write_file.index = index;
 
-    return qemu_file_call(&qcall);
+    return qemu_file_call(pqcall);
 }
 
-int64_t qc_read_file(void *buffer_guest_ptr, uint64_t length,
-                     uint64_t offset, uint64_t index)
+int64_t qc_read_file(uint64_t buffer_guest_paddr, uint64_t length,
+                     uint64_t offset, uint64_t index, void *qcall)
 {
-    qemu_call_t qcall = {
-        .call_number = QC_READ_FILE,
-        .args.read_file.buffer_guest_ptr = (uint64_t)buffer_guest_ptr,
-        .args.read_file.length = length,
-        .args.read_file.offset = offset,
-        .args.read_file.index = index,
-    };
+    qemu_call_t *pqcall = (qemu_call_t *)qcall;
+    pqcall->call_number = QC_READ_FILE;
+    pqcall->args.read_file.buffer_guest_paddr = buffer_guest_paddr;
+    pqcall->args.read_file.length = length;
+    pqcall->args.read_file.offset = offset;
+    pqcall->args.read_file.index = index;
 
-    return qemu_file_call(&qcall);
+    return qemu_file_call(pqcall);
 }

@@ -34,3 +34,14 @@ void qemu_call(qemu_call_t *qcall)
     asm volatile (".byte 0x1b");
     asm volatile (".byte 0xd5");
 }
+
+uint64_t qemu_call_status(void)
+{
+    uint64_t ret;
+    asm volatile (".byte 0x00");
+    asm volatile (".byte 0xff");
+    asm volatile (".byte 0x3b");
+    asm volatile (".byte 0xd5");
+    asm volatile ("mov %0, x0" : "=r" (ret) );
+    return ret;
+}

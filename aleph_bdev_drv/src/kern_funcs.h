@@ -30,27 +30,54 @@ enum IODirection
     kIODirectionOut   = 0x2,// User land 'write', same as VM_PROT_WRITE
 };
 
-#define IOBLOCKSTORAGEDEVICE_MCLASS_INST_PTR (0xfffffff0076f6e58)
-#define IOBLOCKSTORAGEDEVICE_MCLASS_VTABLE_PTR (0xfffffff006e14200)
-#define IOBLOCKSTORAGEDEVICE_VTABLE_PTR (0xfffffff006e13c00)
-#define IOBLOCKSTORAGEDEVICE_CONSTRUCTOR_FUNC_PTR (0xfffffff00619ad80)
+//IOBlockStorageDevice::IOBlockStorageDevice(IOBlockStorageDevice *this, const OSMetaClass *a2)
+extern void *_ZN20IOBlockStorageDeviceC2EPK11OSMetaClass(void *this, void *mclass);
+#define IOBlockStorageDevice_IOBlockStorageDevice(a, b) \
+        _ZN20IOBlockStorageDeviceC2EPK11OSMetaClass(a, b)
 
-#define IOMFB_MCLASS_INST_PTR (0xfffffff00771b408)
-#define IOMFB_MCLASS_VTABLE_PTR (0xfffffff006e8d4b8)
-#define IOMFB_VTABLE_PTR (0xfffffff006e8ca10)
-#define IOMFB_CONSTRUCTOR_FUNC_PTR (0xfffffff00636a660)
+//IOBlockStorageDevice - vtable
+extern void *_ZTV20IOBlockStorageDevice;
+#define IOBlockStorageDevice_vtable _ZTV20IOBlockStorageDevice
 
-#define IOSERVICE_MCLASS_INST_PTR (0xfffffff007602b68)
-#define IOSERVICE_MCLASS_VTABLE_PTR (0xfffffff007086e80)
-#define IOSERVICE_VTABLE_PTR (0xfffffff007086300)
+//IOBlockStorageDevice::MetaClass - vtable
+extern void *_ZTVN20IOBlockStorageDevice9MetaClassE;
+#define IOBlockStorageDevice_MetaClass_vtable \
+        _ZTVN20IOBlockStorageDevice9MetaClassE
 
-#define IOUC_MCLASS_INST_PTR (0xfffffff0076033f8)
-#define IOUC_MCLASS_VTABLE_PTR (0xfffffff007091058)
-#define IOUC_VTABLE_PTR (0xfffffff007090a78)
+//IOBlockStorageDevice::gMetaClass
+extern void *_ZN20IOBlockStorageDevice10gMetaClassE;
+#define IOBlockStorageDevice_gMetaClass _ZN20IOBlockStorageDevice10gMetaClassE
 
-#define SALLCLASSESDICT_PTR (0xfffffff007672e00)
-#define SALLCLASSESLOCK_PTR (0xfffffff007672dc0)
-#define SSTALLEDCLASSESLOCK_PTR (0xfffffff007672dd0)
+//IOService - vtable
+extern void *_ZTV9IOService;
+#define IOService_vtable _ZTV9IOService
+
+//IOService::MetaClass - vtable
+extern void *_ZTVN9IOService9MetaClassE;
+#define IOService_MetaClass_vtable _ZTVN9IOService9MetaClassE
+
+//IOService::gMetaClass
+extern void *_ZN9IOService10gMetaClassE;
+#define IOService_gMetaClass _ZN9IOService10gMetaClassE
+
+//IOUserClient - vtable
+extern void *_ZTV12IOUserClient;
+#define IOUserClient_vtable _ZTV12IOUserClient
+
+//IOUserClient::MetaClass - vtable
+extern void *_ZTVN12IOUserClient9MetaClassE;
+#define IOUserClient_MetaClass_vtable _ZTVN12IOUserClient9MetaClassE
+
+//IOUserClient::gMetaClass
+extern void *_ZN12IOUserClient10gMetaClassE;
+#define IOUserClient_gMetaClass _ZN12IOUserClient10gMetaClassE
+
+extern void *_ZL15sAllClassesDict;
+#define sAllClassesDict _ZL15sAllClassesDict
+
+extern void *sStalledClassesLock;
+
+extern void *sAllClassesLock;
 
 //OSMetaClass::instanceConstructed() const
 void _ZNK11OSMetaClass19instanceConstructedEv(void *meta_class_inst_ptr);
@@ -151,6 +178,113 @@ void _ZN12IOUserClient17sendAsyncResult64EPyiS0_j(void *aref, uint64_t res,
                                                   uint64_t *args, uint64_t cnt);
 #define IOUserClient_sendAsyncResult64(a, b, c, d) \
     _ZN12IOUserClient17sendAsyncResult64EPyiS0_j(a, b, c, d)
+
+//IOSurfaceRoot::lookupSurface(IOSurfaceRoot *__hidden this, unsigned int, task *)
+void *_ZN13IOSurfaceRoot13lookupSurfaceEjP4task(void *surface_root,
+                                                uint64_t layer_index,
+                                                void *task);
+#define IOSurfaceRoot_lookupSurface(a, b, c) \
+    _ZN13IOSurfaceRoot13lookupSurfaceEjP4task(a, b, c)
+
+//IOSurface::deviceLockSurface(IOSurface *__hidden this, unsigned int)
+uint64_t _ZN9IOSurface17deviceLockSurfaceEj(void *surface, uint64_t i);
+#define IOSurface_deviceLockSurface(a, b) \
+    _ZN9IOSurface17deviceLockSurfaceEj(a, b)
+
+//IOSurface::prepare(IOSurface *__hidden this)
+uint64_t _ZN9IOSurface7prepareEv(void *surface);
+#define IOSurface_prepare(a) \
+    _ZN9IOSurface7prepareEv(a)
+
+//IOSurface::getMemoryDescriptor(IOSurface *__hidden this)
+void *_ZNK9IOSurface19getMemoryDescriptorEv(void *surface);
+#define IOSurface_getMemoryDescriptor(a) \
+    _ZNK9IOSurface19getMemoryDescriptorEv(a)
+
+//IOSurface::deviceUnlockSurface(IOSurface *__hidden this, unsigned int)
+void _ZN9IOSurface19deviceUnlockSurfaceEj(void *surface, uint64_t i);
+#define IOSurface_deviceUnlockSurface(a, b) \
+    _ZN9IOSurface19deviceUnlockSurfaceEj(a, b)
+
+//IOSurface::complete(IOSurface *this)
+void _ZN9IOSurface8completeEv(void *surface);
+#define IOSurface_complete(a) \
+    _ZN9IOSurface8completeEv(a)
+
+//IOSurface::release(IOSurface *__hidden this)
+void _ZNK9IOSurface7releaseEv(void *surface);
+#define IOSurface_release(a) \
+    _ZNK9IOSurface7releaseEv(a)
+
+//OSObject::release(OSObject *__hidden this)
+void _ZNK8OSObject7releaseEv(void *ob);
+#define OSObject_release(a) \
+    _ZNK8OSObject7releaseEv(a)
+
+//IOMemoryMap::getVirtualAddress(IOMemoryMap *__hidden this)
+void *_ZN11IOMemoryMap17getVirtualAddressEv(void *map);
+#define IOMemoryMap_getVirtualAddress(a) \
+    _ZN11IOMemoryMap17getVirtualAddressEv(a)
+
+//IOMemoryMap::getPhysicalSegment(IOMemoryMap *__hidden this, IOByteCount offset, IOByteCount *length, IOOptionBits options)
+uint64_t _ZN11IOMemoryMap18getPhysicalSegmentEyPyj(void *map, uint32_t offset,
+                                                   uint32_t *len,
+                                                   uint64_t opts);
+#define IOMemoryMap_getPhysicalSegment(a, b, c, d) \
+    _ZN11IOMemoryMap18getPhysicalSegmentEyPyj(a, b, c, d)
+
+//IOMemoryDescriptor::getLength(IOMemoryDescriptor *__hidden this)
+uint64_t _ZNK18IOMemoryDescriptor9getLengthEv(void *mem_desc);
+#define IOMemoryDescriptor_getLength(a) \
+    _ZNK18IOMemoryDescriptor9getLengthEv(a)
+
+//IOMemoryDescriptor::map(IOMemoryDescriptor *__hidden this, IOOptionBits options)
+void *_ZN18IOMemoryDescriptor3mapEj(void *mem_desc, uint64_t opts);
+#define IOMemoryDescriptor_map(a, b) \
+    _ZN18IOMemoryDescriptor3mapEj(a, b)
+
+//IODirection __cdecl IOMemoryDescriptor::getDirection(IOMemoryDescriptor *__hidden this)
+uint64_t _ZNK18IOMemoryDescriptor12getDirectionEv(void *mem_desc);
+#define IOMemoryDescriptor_getDirection(a) \
+    _ZNK18IOMemoryDescriptor12getDirectionEv(a)
+
+//bool __cdecl IOBlockStorageDevice::init(IOBlockStorageDevice *__hidden this, OSDictionary *properties)
+uint64_t _ZN20IOBlockStorageDevice4initEP12OSDictionary(void *block_dev,
+                                                        void *dict);
+#define IOBlockStorageDevice_init(a, b) \
+    _ZN20IOBlockStorageDevice4initEP12OSDictionary(a, b)
+
+//bool __cdecl IOService::attach(IOService *__hidden this, IOService *provider)
+uint64_t _ZN9IOService6attachEPS_(void *service, void *provider);
+#define IOService_attach(a, b) \
+    _ZN9IOService6attachEPS_(a, b)
+
+//void __cdecl IOService::registerService(IOService *__hidden this, IOOptionBits options)
+uint64_t _ZN9IOService15registerServiceEj(void *service, uint64_t options);
+#define IOService_registerService(a, b) \
+    _ZN9IOService15registerServiceEj(a, b)
+
+//bool __cdecl IOService::init(IOService *__hidden this, OSDictionary *dictionary)
+uint64_t _ZN9IOService4initEP12OSDictionary(void *service, void *dict);
+#define IOService_init(a, b) \
+    _ZN9IOService4initEP12OSDictionary(a, b)
+
+//bool __cdecl IOService::terminate(IOService *__hidden this, IOOptionBits options)
+uint64_t _ZN9IOService9terminateEj(void *service, uint64_t options);
+#define IOService_terminate(a, b) \
+    _ZN9IOService9terminateEj(a, b)
+
+//bool __cdecl IORegistryEntry::setProperty(IORegistryEntry *__hidden this, const char *aKey, const char *aString)
+uint64_t _ZN15IORegistryEntry11setPropertyEPKcS1_(void *entry,
+                                                  const char *aKey,
+                                                  const char *aString);
+#define IORegistryEntry_setProperty(a, b, c) \
+    _ZN15IORegistryEntry11setPropertyEPKcS1_(a, b, c)
+
+void arm_vm_page_granular_prot(uint64_t start, uint64_t size,
+                               uint64_t pa_offset, uint64_t tte_prot_XN,
+                               uint64_t pte_prot_APX, uint64_t pte_prot_XN,
+                               uint64_t force_page_granule);
 
 //void _IOLog(undefined8 param_1)
 void IOLog(const char* fmt, ...);

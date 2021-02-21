@@ -37,7 +37,7 @@ static MetaClassVTable fbuc_meta_class_vtable;
 void create_fbuc_vtable(void)
 {
     memcpy(&fbuc_vtable[0],
-           (void *)IOUC_VTABLE_PTR,
+           (char *)&IOUserClient_vtable + 0x10,
            sizeof(fbuc_vtable));
     fbuc_vtable[IOSERVICE_DESTRUCTOR_INDEX] = &fbuc_destructor;
     fbuc_vtable[IOSERVICE_GETMCLASS_INDEX] = &fbuc_getMetaClass;
@@ -54,6 +54,7 @@ void create_fbuc_vtable(void)
 
 void *fbuc_alloc(void)
 {
+    log_uint64("JONAHTANA fbuc_alloc: 1 : ", 0);
     void **obj = OSObject_new(ALEPH_FBUC_SIZE);
     IOUserClient_IOUserClient(obj, get_fbuc_mclass_inst());
     obj[0] = &fbuc_vtable[0];
@@ -63,13 +64,16 @@ void *fbuc_alloc(void)
 
 void create_fbuc_metaclass_vtable(void)
 {
-    memcpy(&fbuc_meta_class_vtable, (void *)IOUC_MCLASS_VTABLE_PTR,
+    //symbol for metaclass vtable is 0x10 before the actual vtable
+    memcpy(&fbuc_meta_class_vtable,
+           (char *)&IOUserClient_MetaClass_vtable + 0x10,
            sizeof(MetaClassVTable));
     fbuc_meta_class_vtable.alloc = fbuc_alloc;
 }
 
 void register_fbuc_meta_class()
 {
+    log_uint64("JONAHTANA register_fbuc_meta_class: 1 : ", 0);
     mclass_reg_slock_lock();
 
     create_fbuc_vtable();
@@ -77,7 +81,7 @@ void register_fbuc_meta_class()
 
     void **mc = OSMetaClass_OSMetaClass(get_fbuc_mclass_inst(),
                                   FBUC_CLASS_NAME,
-                                  (void *)IOUC_MCLASS_INST_PTR,
+                                  (void *)&IOUserClient_gMetaClass,
                                   ALEPH_FBUC_SIZE);
     if (NULL == mc) {
         cancel();
